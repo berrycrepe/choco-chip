@@ -34,7 +34,7 @@ export default function ClassCard() {
         })
         .catch(() => {});
     }
-  }, [user?.dbUserId]);
+  }, [user]);
 
   const { percent, bonus, classLevel } = useMemo(() => {
     if (!classGroups.length) return { percent: 0, bonus: 0, classLevel: 0 };
