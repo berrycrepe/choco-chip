@@ -21,9 +21,9 @@ export default function LoggedInHome({ nickname, division, solvedCount, avatarDa
     <main className="page home-logged-main">
       <section className="home-top-grid">
         <UserSummaryCard nickname={nickname} division={division} solvedCount={solvedCount} avatarDataUrl={avatarDataUrl} />
-        <StreakCard />
         <ClassCard />
       </section>
+      <StreakCard />
 
       <section className="home-message-row">
         <h2>오늘도 한 문제씩 꾸준히 해결해 보세요</h2>

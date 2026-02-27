@@ -21,6 +21,8 @@ export async function POST(request: Request) {
              bio, "avatarDataUrl", "bannerType", "customBannerDataUrl"
       FROM "User"
       WHERE LOWER(id) = LOWER(${loginId})
+         OR LOWER(email) = LOWER(${loginId})
+         OR LOWER(handle) = LOWER(${loginId})
       LIMIT 1
     `;
 

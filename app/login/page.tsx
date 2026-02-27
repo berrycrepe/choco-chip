@@ -32,11 +32,14 @@ export default function LoginPage() {
           <span style={{ fontWeight: 800, fontSize: 18, color: "var(--text)" }}>Choco Chip</span>
         </div>
 
-        <h1 style={{ textAlign: "center", color: "#fff", fontSize: 26, margin: "0 0 28px", fontWeight: 800 }}>로그인</h1>
+        <h1 style={{ textAlign: "center", color: "#fff", fontSize: 26, margin: "0 0 8px", fontWeight: 800 }}>로그인</h1>
+        <p style={{ textAlign: "center", color: "var(--text-dim)", fontSize: 13, margin: "0 0 24px" }}>
+          아이디, 이메일 또는 핸들로 로그인할 수 있습니다
+        </p>
 
         <input
           className="login-input"
-          placeholder="아이디"
+          placeholder="아이디 또는 이메일"
           value={loginId}
           onChange={(e) => setLoginId(e.target.value)}
         />
