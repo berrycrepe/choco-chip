@@ -1,6 +1,5 @@
 ﻿import { notFound } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
-import SubNav from "@/components/SubNav";
 import MathText from "@/components/MathText";
 import { getProblemById, tierLabel, tierClass } from "@/lib/queries";
 
@@ -19,7 +18,6 @@ export default async function ProblemDetailPage({ params }: Props) {
   return (
     <>
       <SiteHeader />
-      <SubNav />
       <main className="page">
         <section className="section">
           <div className="section-eyebrow">문제 #{problem.id}</div>

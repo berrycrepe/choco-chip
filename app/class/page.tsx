@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
-import SubNav from "@/components/SubNav";
 import { useAuth } from "@/context/AuthContext";
 import { buildClassRows, getRecommendedClass } from "@/lib/classProgress";
 import type { ClassGroup } from "@/lib/types";
@@ -80,26 +79,46 @@ export default function ClassPage() {
     return (
       <>
         <SiteHeader />
-        <SubNav />
         <main className="page">
           <section className="section">
             <h2>CLASS</h2>
-            <div className="status">문제 목록을 불러오는 중...</div>
-          </section>
-        </main>
-      </>
-    );
-  }
-
-  if (user?.dbUserId && solvedLoading) {
-    return (
-      <>
-        <SiteHeader />
-        <SubNav />
-        <main className="page">
-          <section className="section">
-            <h2>CLASS</h2>
-            <div className="status">DB 제출 기록을 동기화하는 중...</div>
+            <div className="class-calm-strip">
+              {Array.from({ length: 10 }).map((_, i) => (
+                <div key={i} className="class-calm-cell" style={{ background: "var(--surface-2)" }}>
+                  <div className="class-calm-ring" style={{ background: "var(--glass-border)", animation: "sk-pulse 1.5s ease-in-out infinite" }}>
+                    <div className="class-calm-ring-inner">
+                      <span className="sk" style={{ width: 32, height: 14, borderRadius: 4 }} />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="sk" style={{ height: 220, width: "100%", borderRadius: "0 0 12px 12px" }} />
+            <div className="metric-card" style={{ marginTop: 18 }}>
+              <div className="sk" style={{ width: 180, height: 18, marginBottom: 20 }} />
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th style={{ width: 80 }}>ID</th>
+                    <th>제목</th>
+                    <th style={{ width: 100 }}>티어</th>
+                    <th style={{ width: 80 }}>에센셜</th>
+                    <th style={{ width: 100 }}>상태</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <tr key={i}>
+                      <td><span className="sk" style={{ width: 40, height: 14, display: "inline-block" }} /></td>
+                      <td><span className="sk" style={{ width: "75%", height: 14, display: "inline-block" }} /></td>
+                      <td><span className="sk" style={{ width: 70, height: 14, display: "inline-block" }} /></td>
+                      <td><span className="sk" style={{ width: 16, height: 16, display: "inline-block", borderRadius: "50%" }} /></td>
+                      <td><span className="sk" style={{ width: 55, height: 14, display: "inline-block" }} /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </section>
         </main>
       </>
@@ -110,7 +129,6 @@ export default function ClassPage() {
     return (
       <>
         <SiteHeader />
-        <SubNav />
         <main className="page">
           <section className="section">
             <h2>CLASS</h2>
@@ -144,7 +162,6 @@ export default function ClassPage() {
   return (
     <>
       <SiteHeader />
-      <SubNav />
       <main className="page">
         <section className="section">
           <h2>CLASS</h2>
@@ -167,7 +184,7 @@ export default function ClassPage() {
                   <div
                     className="class-calm-ring"
                     style={{
-                      background: `conic-gradient(${c.ring} ${row.percent * 3.6}deg, rgba(28, 43, 57, 0.85) 0deg)`,
+                      background: `conic-gradient(${c.ring} ${row.percent * 3.6}deg, var(--class-ring-track) 0deg)`,
                     }}
                   >
                     <div className="class-calm-ring-inner">
@@ -234,7 +251,7 @@ export default function ClassPage() {
 
           <div className="metric-card" style={{ marginTop: 18 }}>
             <h3 style={{ marginTop: 0 }}>CLASS {selectedLevel} 문제 목록</h3>
-            {!user ? <p style={{ color: "#9fb5cb" }}>로그인하면 실제 제출 기록 기준으로 해결 여부가 표시됩니다.</p> : null}
+            {!user ? <p style={{ color: "var(--text-muted)" }}>로그인하면 실제 제출 기록 기준으로 해결 여부가 표시됩니다.</p> : null}
             <table className="table">
               <thead>
                 <tr>
@@ -253,7 +270,11 @@ export default function ClassPage() {
                       <td style={{ color: "var(--text-muted)" }}>{problem.id}</td>
                       <td style={{ fontWeight: 600 }}>{problem.title}</td>
                       <td>{getTierLabel(problem.tier)}</td>
-                      <td>{problem.essential ? "●" : "-"}</td>
+                      <td>
+                        {problem.essential
+                          ? <span className="material-symbols-rounded icon-fill" style={{ color: "var(--accent)", fontSize: 16 }}>star</span>
+                          : <span style={{ color: "var(--text-dim)" }}>—</span>}
+                      </td>
                       <td style={{ color: solved ? "var(--success)" : "var(--text-dim)", fontWeight: 700 }}>
                         {solved ? "해결됨" : "미해결"}
                       </td>

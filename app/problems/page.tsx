@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
-import SubNav from "@/components/SubNav";
 import { getTierLabel, tierLabels } from "@/lib/tier";
 import type { DbProblem } from "@/lib/queries";
 
@@ -46,7 +45,7 @@ export default function ProblemsPage() {
   const [tagMode, setTagMode] = useState<"OR" | "AND">("OR");
   const [tagQuery, setTagQuery] = useState("");
   const [minSolved, setMinSolved] = useState(0);
-  const [maxSolved, setMaxSolved] = useState(200000);
+  const [maxSolved, setMaxSolved] = useState(100);
   const [status, setStatus] = useState("");
 
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
@@ -77,15 +76,19 @@ export default function ProblemsPage() {
   const maxTier = Math.max(tierMin, tierMax);
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const raw = search.trim().toLowerCase();
+    // strip leading # so "#1234" searches by problem number
+    const q = raw.startsWith("#") ? raw.slice(1) : raw;
     const tq = tagQuery.trim().toLowerCase();
 
     return problems.filter((p) => {
       const matchTier = p.tier >= minTier && p.tier <= maxTier;
       const matchSolved = p.solvedCount >= minSolved && p.solvedCount <= maxSolved;
+      const idStr = String(p.id);
       const matchSearch =
         !q ||
-        String(p.id).includes(q) ||
+        idStr === q ||                               // exact serial match
+        idStr.startsWith(q) ||                       // prefix serial match
         p.title.toLowerCase().includes(q) ||
         p.tags.some((tag) => tag.toLowerCase().includes(q));
       const tagTokens = tq.split(/\s+/).filter(Boolean);
@@ -98,6 +101,20 @@ export default function ProblemsPage() {
       return matchTier && matchSolved && matchSearch && matchTag;
     });
   }, [problems, search, tagQuery, tagMode, minTier, maxTier, minSolved, maxSolved]);
+
+  // All distinct tags for autocomplete (derived from the full unfiltered list)
+  const allTagsList = useMemo(() => {
+    const set = new Set<string>();
+    problems.forEach((p) => p.tags.forEach((t) => set.add(t)));
+    return Array.from(set).sort();
+  }, [problems]);
+
+  // Suggestions for the last typed token in tagQuery
+  const tagSuggestions = useMemo(() => {
+    const lastToken = tagQuery.trim().split(/\s+/).pop()?.toLowerCase() ?? "";
+    if (!lastToken) return [];
+    return allTagsList.filter((t) => t.toLowerCase().includes(lastToken)).slice(0, 8);
+  }, [allTagsList, tagQuery]);
 
   const allTags = useMemo(() => {
     const tagCount = new Map<string, number>();
@@ -119,6 +136,12 @@ export default function ProblemsPage() {
     return filtered.filter((p) => p.tier >= group.min && p.tier <= group.max);
   }, [filtered, selectedTierGroup]);
 
+  function applyTagSuggestion(tag: string) {
+    const tokens = tagQuery.trim().split(/\s+/);
+    tokens[tokens.length - 1] = tag;
+    setTagQuery(tokens.join(" ") + " ");
+  }
+
   const resetAll = () => {
     setSearch("");
     setTierMin(0);
@@ -126,7 +149,7 @@ export default function ProblemsPage() {
     setTagMode("OR");
     setTagQuery("");
     setMinSolved(0);
-    setMaxSolved(200000);
+    setMaxSolved(100);
     setSelectedTag(null);
     setSelectedTierGroup(null);
     setStatus("필터를 초기화했습니다.");
@@ -140,7 +163,6 @@ export default function ProblemsPage() {
   return (
     <>
       <SiteHeader />
-      <SubNav />
       <main className="split">
         <aside className="panel problem-filter-panel">
           <div className="filter-head">
@@ -170,20 +192,34 @@ export default function ProblemsPage() {
                 <button className={`chip ${tagMode === "AND" ? "active" : ""}`} onClick={() => setTagMode("AND")}>AND</button>
               </span>
             </div>
-            <input className="control" placeholder="태그 검색 (공백으로 다중 입력)" value={tagQuery} onChange={(e) => setTagQuery(e.target.value)} />
+            <input
+              className="control"
+              placeholder="태그 검색 (공백으로 다중 입력)"
+              value={tagQuery}
+              onChange={(e) => setTagQuery(e.target.value)}
+            />
+            {tagSuggestions.length > 0 && (
+              <div className="tag-suggest">
+                {tagSuggestions.map((t) => (
+                  <button key={t} className="tag-suggest-item" onClick={() => applyTagSuggestion(t)}>
+                    {t}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="filter-block">
             <div className="label">해결한 사람 수</div>
             <div className="range-wrapper">
               <div className="range-track" />
-              <div className="range-fill" style={{ left: `${(minSolved / 200000) * 100}%`, right: `${100 - (maxSolved / 200000) * 100}%` }} />
-              <input className="range-input" type="range" min={0} max={200000} step={100} value={minSolved} onChange={(e) => setMinSolved(Number(e.target.value))} />
-              <input className="range-input" type="range" min={0} max={200000} step={100} value={maxSolved} onChange={(e) => setMaxSolved(Number(e.target.value))} />
+              <div className="range-fill" style={{ left: `${(minSolved / 100) * 100}%`, right: `${100 - (maxSolved / 100) * 100}%` }} />
+              <input className="range-input" type="range" min={0} max={100} step={1} value={minSolved} onChange={(e) => setMinSolved(Number(e.target.value))} />
+              <input className="range-input" type="range" min={0} max={100} step={1} value={maxSolved} onChange={(e) => setMaxSolved(Number(e.target.value))} />
             </div>
             <div className="row" style={{ marginTop: 8 }}>
-              <input className="control" type="number" min={0} max={200000} value={minSolved} onChange={(e) => setMinSolved(clamp(Number(e.target.value || 0), 0, maxSolved))} />
-              <input className="control" type="number" min={0} max={200000} value={maxSolved} onChange={(e) => setMaxSolved(clamp(Number(e.target.value || 0), minSolved, 200000))} />
+              <input className="control" type="number" min={0} max={100} value={minSolved} onChange={(e) => setMinSolved(clamp(Number(e.target.value || 0), 0, maxSolved))} />
+              <input className="control" type="number" min={0} max={100} value={maxSolved} onChange={(e) => setMaxSolved(clamp(Number(e.target.value || 0), minSolved, 100))} />
             </div>
           </div>
 
@@ -275,7 +311,15 @@ export default function ProblemsPage() {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={5} style={{ color: "var(--text-dim)", textAlign: "center", padding: "32px 0" }}>불러오는 중...</td></tr>
+                  Array.from({ length: 10 }).map((_, i) => (
+                    <tr key={i}>
+                      <td><span className="sk" style={{ width: 44, height: 14, display: "inline-block" }} /></td>
+                      <td><span className="sk" style={{ width: "78%", height: 14, display: "inline-block" }} /></td>
+                      <td><span className="sk" style={{ width: 80, height: 14, display: "inline-block" }} /></td>
+                      <td><span className="sk" style={{ width: 52, height: 14, display: "inline-block" }} /></td>
+                      <td><span className="sk" style={{ width: 110, height: 14, display: "inline-block" }} /></td>
+                    </tr>
+                  ))
                 ) : filtered.length === 0 ? (
                   <tr><td colSpan={5} style={{ color: "var(--text-dim)", textAlign: "center", padding: "32px 0" }}>조건에 맞는 문제가 없습니다.</td></tr>
                 ) : (

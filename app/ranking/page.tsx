@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import SiteHeader from "@/components/SiteHeader";
-import SubNav from "@/components/SubNav";
 import type { DbRanking } from "@/lib/queries";
 
 type Tab = "전체" | "레이팅" | "아레나" | "클래스" | "대회";
@@ -64,7 +63,6 @@ export default function RankingPage() {
   return (
     <>
       <SiteHeader />
-      <SubNav />
       <main className="page">
         <section className="section">
           <div className="section-eyebrow">Leaderboard</div>
@@ -95,11 +93,15 @@ export default function RankingPage() {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr>
-                    <td colSpan={8} style={{ color: "var(--text-dim)", textAlign: "center", padding: "32px 0" }}>
-                      불러오는 중...
-                    </td>
-                  </tr>
+                  Array.from({ length: 10 }).map((_, i) => (
+                    <tr key={i}>
+                      <td><span className="sk" style={{ width: 28, height: 14, display: "inline-block" }} /></td>
+                      <td><span className="sk" style={{ width: 110, height: 14, display: "inline-block" }} /></td>
+                      <td><span className="sk" style={{ width: 70, height: 14, display: "inline-block" }} /></td>
+                      <td><span className="sk" style={{ width: 60, height: 14, display: "inline-block" }} /></td>
+                      <td><span className="sk" style={{ width: 90, height: 14, display: "inline-block" }} /></td>
+                    </tr>
+                  ))
                 ) : sorted.length === 0 ? (
                   <tr>
                     <td colSpan={8} style={{ color: "var(--text-dim)", textAlign: "center", padding: "32px 0" }}>

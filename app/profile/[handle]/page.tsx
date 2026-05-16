@@ -128,45 +128,66 @@ function localDateStr(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function buildHeatmapGrid(data: HeatmapDay[]): { weeks: HeatmapCell[][]; monthLabels: { label: string; col: number }[] } {
+interface HeatmapGridResult {
+  weeks: HeatmapCell[][];
+  monthLabels: { label: string; col: number }[];
+  totalCount: number;
+  activeDays: number;
+}
+
+function buildHeatmapGrid(data: HeatmapDay[], year: number): HeatmapGridResult {
   const countMap = new Map(data.map((d) => [d.date, d.count]));
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const todayStr = localDateStr(today);
 
-  // Start from the Sunday that was ~52 weeks ago
-  const start = new Date(today);
-  start.setDate(today.getDate() - 363);
-  start.setDate(start.getDate() - start.getDay()); // rewind to Sunday
+  // Full calendar year: Jan 1 → Dec 31, grid starts on the Sunday before Jan 1
+  const jan1 = new Date(year, 0, 1);
+  const start = new Date(jan1);
+  start.setDate(jan1.getDate() - jan1.getDay()); // rewind to Sunday
+  const dec31 = new Date(year, 11, 31);
 
   const weeks: HeatmapCell[][] = [];
   const monthLabels: { label: string; col: number }[] = [];
   const cursor = new Date(start);
   let weekIdx = 0;
   let lastMonth = -1;
+  let totalCount = 0;
+  let activeDays = 0;
 
-  while (cursor <= today) {
+  const MONTH_NAMES = ["1월","2월","3월","4월","5월","6월","7월","8월","9월","10월","11월","12월"];
+
+  while (cursor <= dec31) {
     const week: HeatmapCell[] = [];
     const weekStart = new Date(cursor);
+
     for (let d = 0; d < 7; d++) {
       const dateStr = localDateStr(cursor);
-      const inFuture = dateStr > todayStr;
-      week.push({ date: dateStr, count: inFuture ? 0 : (countMap.get(dateStr) ?? 0), inFuture });
+      const inCurrentYear = cursor.getFullYear() === year;
+      const inFuture = !inCurrentYear || dateStr > todayStr;
+      const count = inFuture ? 0 : (countMap.get(dateStr) ?? 0);
+
+      week.push({ date: dateStr, count, inFuture });
+
+      if (inCurrentYear && !inFuture) {
+        totalCount += count;
+        if (count > 0) activeDays++;
+      }
       cursor.setDate(cursor.getDate() + 1);
     }
+
     weeks.push(week);
 
-    // Month label at start of week if month changed
+    // Month label when month changes, only for cells within this year
     const monthOfWeek = weekStart.getMonth();
-    if (monthOfWeek !== lastMonth) {
-      const names = ["1월","2월","3월","4월","5월","6월","7월","8월","9월","10월","11월","12월"];
-      monthLabels.push({ label: names[monthOfWeek], col: weekIdx });
+    if (monthOfWeek !== lastMonth && weekStart.getFullYear() === year) {
+      monthLabels.push({ label: MONTH_NAMES[monthOfWeek], col: weekIdx });
       lastMonth = monthOfWeek;
     }
     weekIdx++;
   }
 
-  return { weeks, monthLabels };
+  return { weeks, monthLabels, totalCount, activeDays };
 }
 
 function StreakHeatmap({ data, currentStreak, longestStreak }: {
@@ -174,17 +195,24 @@ function StreakHeatmap({ data, currentStreak, longestStreak }: {
   currentStreak: number;
   longestStreak: number;
 }) {
-  const { weeks, monthLabels } = useMemo(() => buildHeatmapGrid(data), [data]);
-  const DAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
+  const year = new Date().getFullYear();
+  const { weeks, monthLabels, totalCount, activeDays } = useMemo(
+    () => buildHeatmapGrid(data, year),
+    [data, year]
+  );
+  // GitHub style: only label Mon / Wed / Fri
+  const DAY_LABELS = ["", "월", "", "수", "", "금", ""];
 
   return (
     <section className="metric-card streak-card" style={{ marginTop: 16 }}>
       <div className="streak-card-header">
         <div className="streak-title-row">
-          <span className="streak-icon">⚡</span>
-          <span className="streak-label">스트릭</span>
+          <span className="material-symbols-rounded icon-sm icon-fill" style={{ color: "var(--brand-light)" }}>local_fire_department</span>
+          <span className="streak-label">{year}년 정답 활동</span>
         </div>
-        <div className="streak-current">현재 <strong>{currentStreak}일</strong></div>
+        <div className="streak-current">
+          정답 제출 <strong>{totalCount}</strong>회, 활동일 <strong>{activeDays}</strong>일
+        </div>
       </div>
 
       <div className="heatmap-wrap">
@@ -205,8 +233,8 @@ function StreakHeatmap({ data, currentStreak, longestStreak }: {
                 <div
                   key={`${wi}-${di}`}
                   className={`heatmap-cell${cell.inFuture ? " hm-future" : ""}`}
-                  style={{ background: cell.inFuture ? "transparent" : heatmapColor(cell.count) }}
-                  title={`${cell.date}: ${cell.count}문제`}
+                  style={{ background: heatmapColor(cell.count) }}
+                  title={cell.inFuture ? "" : `${cell.date}: ${cell.count}문제`}
                 />
               ))
             )}
@@ -215,7 +243,7 @@ function StreakHeatmap({ data, currentStreak, longestStreak }: {
       </div>
 
       <div className="streak-footer">
-        <span>최장 <strong>{longestStreak}일</strong> 연속 문제 해결</span>
+        <span>현재 연속 <strong>{currentStreak}일</strong> · 최장 <strong>{longestStreak}일</strong></span>
         <div className="heatmap-legend">
           <span>적음</span>
           <div className="hm-legend-cell" style={{ background: "var(--hm-0)" }} />
